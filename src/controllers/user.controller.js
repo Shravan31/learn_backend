@@ -15,6 +15,8 @@ const registerUser = asyncHandler(async (req, res)=>{
     // send response without password and refreshToken
 
     const {username, email, password, fullName} = req.body;
+    // console.log("user req body", req.body);
+    
     
     const isInvalidData = [username, email, password, fullName].some(field => field?.trim() === "")
 
@@ -31,7 +33,15 @@ const registerUser = asyncHandler(async (req, res)=>{
     }
 
     const avatarLocatPath = req.files?.avatar[0]?.path;
-    const coverImageLocatPath = req.files?.coverImage[0]?.path;
+    // const coverImageLocatPath = req.files?.coverImage[0]?.path;
+    console.log("req.files", req.files);
+    
+
+    let coverImageLocatPath;
+
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+        coverImageLocatPath = req.files.coverImage[0].path;
+    }
 
     if(!avatarLocatPath){
         throw new ApiError(400, "Avatar file is required");
