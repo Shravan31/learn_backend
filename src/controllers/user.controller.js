@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {ApiError } from "../utils/ApiError.js" 
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import {ApiResponse} from '../utils/ApiResponse.js'
 import jwt from "jsonwebtoken"
 
@@ -253,15 +253,22 @@ const updateAccountDetails = asyncHandler(async(req, res)=>{
 })
 
 const updateAvatarImage = asyncHandler(async(req, res)=>{
-    const {avatarLocatPath} = req.file?.path;
+    
+    const avatarLocatPath = req.file?.path;
 
     if(!avatarLocatPath){
         throw new ApiError(400, "Avatar image is missing");
     }
 
+    // delete the older immage from cloudinary after user successfully uploads new image
+    const avatarToDeleteFromCloudinary = await User.findById(req.user._id).select("avatar");
+    const avatarFileName = avatarToDeleteFromCloudinary.avatar.substring(avatarToDeleteFromCloudinary.avatar.lastIndexOf('/')+1)
+    const avatarToDelete = avatarFileName.substring(0, avatarFileName.lastIndexOf('.'));
+    // console.log("avatarFileName", avatarFileName, avatarToDelete);
+
     const avatar = await uploadOnCloudinary(avatarLocatPath)
 
-    if(!(avatar?.url)){
+    if(!avatar?.url){
         throw new ApiError(400, "Something went wrong while uploading the avatar")
     }
 
@@ -276,16 +283,22 @@ const updateAvatarImage = asyncHandler(async(req, res)=>{
         }
     ).select("-password");
 
+    const deletedAvatarResponse = await deleteFromCloudinary(avatarToDelete);
+
+    console.log("old avatar deleted ", deletedAvatarResponse)
+
     res.status(200)
     .json(new ApiResponse(200, user, "Avatar image updated successfully"))
 })
 
 const updateCoverImage = asyncHandler(async(req, res)=>{
-    const {coverImageLocatPath} = req.file?.path;
+    const coverImageLocatPath = req.file?.path;
 
     if(!coverImageLocatPath){
         throw new ApiError(400, "cover image is missing");
     }
+    // TODO : delete the older immage from cloudinary after user successfully uploads new image
+    const coverImageToDeleteFromCloudinary = await User.findById(req.user._id).select("coverImage");
 
     const coverImage = await uploadOnCloudinary(coverImageLocatPath)
 
@@ -303,6 +316,13 @@ const updateCoverImage = asyncHandler(async(req, res)=>{
             new : true
         }
     ).select("-password");
+
+    if(coverImageToDeleteFromCloudinary){
+        const coverImageFileName = coverImageToDeleteFromCloudinary.coverImage.substring(coverImageToDeleteFromCloudinary.coverImage.lastIndexOf('/')+1)
+        const coverImageToDelete = coverImageFileName.substring(0, coverImageFileName.lastIndexOf('.'));
+        const deletedCoverImageResponse = await deleteFromCloudinary(coverImageToDelete);
+        // console.log("old cover Image deleted ", deletedCoverImageResponse)
+    }
 
     res.status(200)
     .json(new ApiResponse(200, user, "cover image updated successfully"))
