@@ -53,23 +53,23 @@ const registerUser = asyncHandler(async (req, res)=>{
         throw new ApiError(409, "User with email or username already exists")
     }
 
-    const avatarLocatPath = req.files?.avatar[0]?.path;
-    // const coverImageLocatPath = req.files?.coverImage[0]?.path;
+    const avatarLocalPath = req.files?.avatar[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
     console.log("req.files", req.files);
     
 
-    let coverImageLocatPath;
+    let coverImageLocalPath;
 
     if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
-        coverImageLocatPath = req.files.coverImage[0].path;
+        coverImageLocalPath = req.files.coverImage[0].path;
     }
 
-    if(!avatarLocatPath){
+    if(!avatarLocalPath){
         throw new ApiError(400, "Avatar file is required");
     }
 
-    const avatar = await uploadOnCloudinary(avatarLocatPath);
-    const coverImage = await uploadOnCloudinary(coverImageLocatPath);
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
     if(!avatar){
         throw new ApiError(400, "Avatar file is required");
@@ -255,9 +255,9 @@ const updateAccountDetails = asyncHandler(async(req, res)=>{
 
 const updateAvatarImage = asyncHandler(async(req, res)=>{
     
-    const avatarLocatPath = req.file?.path;
+    const avatarLocalPath = req.file?.path;
 
-    if(!avatarLocatPath){
+    if(!avatarLocalPath){
         throw new ApiError(400, "Avatar image is missing");
     }
 
@@ -267,7 +267,7 @@ const updateAvatarImage = asyncHandler(async(req, res)=>{
     const avatarToDelete = avatarFileName.substring(0, avatarFileName.lastIndexOf('.'));
     // console.log("avatarFileName", avatarFileName, avatarToDelete);
 
-    const avatar = await uploadOnCloudinary(avatarLocatPath)
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
 
     if(!avatar?.url){
         throw new ApiError(400, "Something went wrong while uploading the avatar")
@@ -293,15 +293,15 @@ const updateAvatarImage = asyncHandler(async(req, res)=>{
 })
 
 const updateCoverImage = asyncHandler(async(req, res)=>{
-    const coverImageLocatPath = req.file?.path;
+    const coverImageLocalPath = req.file?.path;
 
-    if(!coverImageLocatPath){
+    if(!coverImageLocalPath){
         throw new ApiError(400, "cover image is missing");
     }
     // TODO : delete the older immage from cloudinary after user successfully uploads new image
     const coverImageToDeleteFromCloudinary = await User.findById(req.user._id).select("coverImage");
 
-    const coverImage = await uploadOnCloudinary(coverImageLocatPath)
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if(!(coverImage?.url)){
         throw new ApiError(400, "Something went wrong while uploading the cover image")
