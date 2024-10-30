@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { Video } from "../models/video.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import { isValidObjectId } from "mongoose";
 
 
@@ -87,6 +87,53 @@ const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: update video details like title, description, thumbnail
 
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(400, "Video id is required")
+    }
+    const {title, description } = req.body;
+
+    const isInvalid = [title, description].some(field => field?.trim()==="");
+
+    if(isInvalid){
+        throw new ApiError(400, "title and description required")
+    }
+
+    const videoToUpdate = await Video.findById(videoId)
+
+    console.log(">>>videoToUpdate", videoToUpdate);
+    
+
+    const thumbnailLocalFile = req.file?.path;
+
+    if(!thumbnailLocalFile){
+        throw new ApiError(400, "thumbnail file is required")
+    }
+
+    const thumbnail = await uploadOnCloudinary(thumbnailLocalFile);
+
+    if(!thumbnail){
+        throw new ApiError(400, "something went wrong while uploading the thumbnail file")
+    }
+
+    const deletionProcess = await deleteFromCloudinary(videoToUpdate?.thumbnail.public_id)
+    console.log("Deleted Thumbnail", deletionProcess)
+
+    const video = await Video.findByIdAndUpdate(videoId, {
+        $set:{
+            title: title,
+            description: description,
+            thumbnail: {
+                public_id: thumbnail.public_id,
+                url: thumbnail.url
+            }
+        }
+    },
+    {new: true})
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video updated successfully"))
+
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -101,5 +148,6 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 export {
     // getAllVideos,  not implemented yet
     publishAVideo,
-    getVideoById
+    getVideoById,
+    updateVideo
 }
