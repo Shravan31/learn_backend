@@ -139,6 +139,37 @@ const updateVideo = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: delete video
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(400, "Video id is required")
+    }
+
+    const videoToDelete = await Video.findById(videoId)
+
+    // console.log(">>>videoToDelete", videoToDelete);
+
+    if(!videoToDelete){
+        throw new ApiError(404, "Video not found");
+    }
+
+    const videoDeleteFile = await deleteFromCloudinary(videoToDelete?.videoFile.public_id);
+    const thumbnailDeleteFile = await deleteFromCloudinary(videoToDelete?.thumbnail?.public_id);
+
+    if(!videoDeleteFile){
+        throw new ApiError(400, "Something went wrong while deleting video from data source");
+    }
+    if(!thumbnailDeleteFile){
+        throw new ApiError(400, "Something went wrong while deleting thumbnail from data source");
+    }
+
+    const deleteVideoResult = await Video.findByIdAndDelete(videoId)
+
+    if(!deleteVideoResult){
+        throw new ApiError(400, "Something went wrong while deleting video from db")
+    }
+
+    return res.status(200)
+    .json(new ApiResponse(200, deleteVideoResult, "Video deleted Successfully"))
+
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
@@ -149,5 +180,6 @@ export {
     // getAllVideos,  not implemented yet
     publishAVideo,
     getVideoById,
-    updateVideo
+    updateVideo,
+    deleteVideo
 }
