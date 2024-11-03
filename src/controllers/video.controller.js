@@ -26,8 +26,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const videoLocalFile = req.files?.video?.[0]?.path;
     const thumbnailLocalFile = req.files?.thumbnail?.[0]?.path;
 
-    if(!videoLocalFile && !thumbnailLocalFile){
-        throw new ApiError(400, "Video file is required");
+    if(!(videoLocalFile && thumbnailLocalFile)){
+        throw new ApiError(400, "Video and thumbnail files are required");
     }
 
     const video = await uploadOnCloudinary(videoLocalFile);
@@ -174,6 +174,24 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(400, "Video id is required")
+    }
+
+    const video = await Video.findById(videoId);
+
+    if(!video){
+        throw new ApiError(404, "Video not found");
+    }
+
+    video.isPublished = !video.isPublished;
+
+    const savedVideo = await video.save({validateBeforeSave: false});
+
+    // console.log("saved video", savedVideo);
+
+    return res.status(200).json(new ApiResponse(200, video, "isPublished toggled successfully"))
+
 })
 
 export {
@@ -181,5 +199,6 @@ export {
     publishAVideo,
     getVideoById,
     updateVideo,
-    deleteVideo
+    deleteVideo,
+    togglePublishStatus
 }
