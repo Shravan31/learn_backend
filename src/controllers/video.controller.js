@@ -8,9 +8,75 @@ import { isValidObjectId } from "mongoose";
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
+    const { page = 1, limit = 10, query ='', sortBy = "createdAt", sortType ='', userId='' } = req.query
     //TODO: get all videos based on query, sort, pagination
     console.log(">>>query ", query, sortBy, sortType, userId);
+
+    var videoAggregate ;
+
+    try {
+        videoAggregate = await Video.aggregate([
+            {
+                $match:{
+                    $or:[
+                        {title: {$regex: query, $options: 'i'}},
+                        {description: {$regex: query, $options: 'i'}}
+                    ]
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline:[
+                        {
+                            $project:{
+                                _id: 1,
+                                fullName: 1,
+                                username: 1,
+                                avatar: 1
+                            }
+                        }
+                    ]
+                },
+                
+            },
+            {
+                $addFields:{
+                    owner:{
+                        $first: "$owner"
+                    }
+                }
+            },
+            {
+                $sort:{
+                    [sortBy || "createdAt"]: parseInt(sortType) || 1
+                }
+            }
+        ])
+    } catch (error) {
+        console.log("Error in aggregation");
+        throw new ApiError(500,  error.message || "Internal server error in video aggregation")
+    }
+
+    console.log("video aggregate", videoAggregate)
+
+    const options = {
+        page,
+        limit,
+        customLabels: {
+            totalDocs: "totalVideos",
+            docs: "videos",
+        },
+        skip: (parseInt(page)-1)*parseInt(limit),
+        limit: parseInt(limit)
+    }
+
+    // TODO :: pagination
+
+    res.status(200).json(new ApiResponse(200, videoAggregate, "Videos fetched according the query successfully"))
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -195,7 +261,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 })
 
 export {
-    // getAllVideos,  not implemented yet
+    getAllVideos,  //not implemented yet
     publishAVideo,
     getVideoById,
     updateVideo,
