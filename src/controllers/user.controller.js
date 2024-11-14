@@ -147,8 +147,8 @@ const logoutUser = asyncHandler(async (req, res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken: undefined
+            $unset:{
+                refreshToken: 1
             }
         },
         {
@@ -171,7 +171,7 @@ const logoutUser = asyncHandler(async (req, res)=>{
 }) 
 
 const refreshAccessToken = asyncHandler(async(req, res)=>{
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
     if(!incomingRefreshToken){
         throw new ApiError(401, "Unautherized request");
@@ -211,7 +211,8 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
 
 const changeCurrentPassword = asyncHandler(async(req, res)=>{
     const { oldPassword, newPassword } = req.body;
-
+    // console.log("passwords old, new", oldPassword, newPassword);
+    
     const user = await User.findById(req.user?._id);
 
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
@@ -331,6 +332,7 @@ const updateCoverImage = asyncHandler(async(req, res)=>{
 
 const getUserChannelProfile = asyncHandler(async(req, res)=>{
     const {username} = req.params;
+    console.log("username", username)
 
     if(!username?.trim()){
         throw new ApiError(400, "channel does not exist with provided username");
@@ -396,7 +398,9 @@ const getUserChannelProfile = asyncHandler(async(req, res)=>{
     }
     console.log("channel", channel);
     
-    return new ApiResponse(200, channel[0], "Channel details fetched successfully")
+    return res
+    .status(200)
+    .json(new ApiResponse(200, channel[0], "Channel details fetched successfully"))
 })
 
 const getWatchHistory = asyncHandler(async(req, res)=>{
