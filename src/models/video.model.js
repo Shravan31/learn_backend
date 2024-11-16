@@ -51,4 +51,9 @@ const videoSchema = new Schema({
 
 videoSchema.plugin(mongooseAggregatePaginate);
 
+videoSchema.pre('findOneAndDelete', async(next)=>{
+    await mongoose.model('Comment').deleteMany({video: this._id})
+    next()
+})
+
 export const Video = mongoose.model("Video", videoSchema);

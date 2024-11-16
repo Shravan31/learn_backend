@@ -112,11 +112,38 @@ const updateComment = asyncHandler(async(req, res)=>{
 })
 
 const deleteComment = asyncHandler(async(req, res)=>{
+    const {commentId} = req.params;
+    if(!isValidObjectId(commentId)){
+        throw new ApiError(400, "Comment Id is required")
+    }
     
+    const user_id = req.user?._id;
+
+    const commentToDelete = await Comment.aggregate([
+        {
+            $match:{
+                $and: [
+                    {_id: new mongoose.Types.ObjectId(commentId)},
+                    {owner: user_id}
+                ]
+            }
+        }
+    ]);
+    // console.log("commentToDelete", commentToDelete)
+    if(commentToDelete?.length===0){
+        throw new ApiError(400, "You are not authourized to delete this comment")
+    }
+    
+    const deletedComment = await Comment.findByIdAndDelete(commentId);
+
+    console.log("deleted Comment", deletedComment);
+
+    return res.status(200).json(new ApiResponse(200, {}, "Comment Deleted Successfully"))
 })
 
 export {
     getVideoComments,
     addComment,
-    updateComment
+    updateComment,
+    deleteComment
 }
