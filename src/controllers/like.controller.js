@@ -42,7 +42,9 @@ const toggleVideoLike = asyncHandler(async(req, res)=>{
         // add the like entry
         const addedLike = await Like.create({
             video: new mongoose.Types.ObjectId(videoId),
-            likedBy: req.user?._id
+            likedBy: req.user?._id,
+            // comment: null,
+            // tweet: null
         })
 
         if(!addedLike){
@@ -92,7 +94,9 @@ const toggleCommentLike = asyncHandler(async(req, res)=>{
         // add the like entry
         const addedLike = await Like.create({
             comment: new mongoose.Types.ObjectId(commentId),
-            likedBy: req.user?._id
+            likedBy: req.user?._id,
+            // video: null,
+            // tweet: null
         })
 
         if(!addedLike){
@@ -143,7 +147,9 @@ const toggleTweetLike = asyncHandler(async(req, res)=>{
         // add the like entry
         const addedLike = await Like.create({
             tweet: new mongoose.Types.ObjectId(tweetId),
-            likedBy: req.user?._id
+            likedBy: req.user?._id,
+            // video: null,
+            // comment: null
         })
 
         if(!addedLike){
@@ -158,11 +164,85 @@ const toggleTweetLike = asyncHandler(async(req, res)=>{
 })
 
 const getLikedVideos = asyncHandler(async(req, res)=>{
+    const likedVideos = await Like.aggregate(
+        [
+            {
+                '$match': {
+                '$and': [
+                    {
+                    'likedBy': req.user?._id
+                    }, {
+                    '$nor': [
+                        {
+                        'video': null
+                        }
+                    ]
+                    }
+                ]
+                }
+            }, {
+                '$lookup': {
+                'from': 'videos', 
+                'localField': 'video', 
+                'foreignField': '_id', 
+                'as': 'videoDetails', 
+                'pipeline': [
+                    {
+                    '$lookup': {
+                        'from': 'users', 
+                        'localField': 'owner', 
+                        'foreignField': '_id', 
+                        'as': 'owner', 
+                        'pipeline': [
+                        {
+                            '$project': {
+                            'username': 1, 
+                            'avatar': 1
+                            }
+                        }
+                        ]
+                    }
+                    }, {
+                    '$addFields': {
+                        'ownerDetails': {
+                        '$first': '$owner'
+                        }
+                    }
+                    }, {
+                    '$project': {
+                        'videoFile': 1, 
+                        'thumbnail': 1, 
+                        'title': 1, 
+                        'description': 1, 
+                        'ownerDetails': 1
+                    }
+                    }
+                ]
+                }
+            }, {
+                '$addFields': {
+                'videoDetails': {
+                    '$first': '$videoDetails'
+                }
+                }
+            }, {
+                '$project': {
+                'videoDetails': 1
+                }
+            }
+        ]
+    )
 
+    if(!likedVideos){
+        throw new ApiError(400, "Error while fetching the liked videos, please try again")
+    }
+
+    return res.status(200).json(new ApiResponse(200, likedVideos, "Liked videos fetched successfully"))
 })
 
 export {
     toggleVideoLike,
     toggleCommentLike,
-    toggleTweetLike
+    toggleTweetLike,
+    getLikedVideos
 }
