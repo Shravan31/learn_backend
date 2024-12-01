@@ -42,9 +42,7 @@ const toggleVideoLike = asyncHandler(async(req, res)=>{
         // add the like entry
         const addedLike = await Like.create({
             video: new mongoose.Types.ObjectId(videoId),
-            likedBy: req.user?._id,
-            // comment: null,
-            // tweet: null
+            likedBy: req.user?._id
         })
 
         if(!addedLike){
@@ -94,9 +92,7 @@ const toggleCommentLike = asyncHandler(async(req, res)=>{
         // add the like entry
         const addedLike = await Like.create({
             comment: new mongoose.Types.ObjectId(commentId),
-            likedBy: req.user?._id,
-            // video: null,
-            // tweet: null
+            likedBy: req.user?._id
         })
 
         if(!addedLike){
