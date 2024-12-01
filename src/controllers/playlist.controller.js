@@ -100,7 +100,7 @@ const getUserPlaylists = asyncHandler(async(req, res)=>{
 })
 
 const getPlaylistById = asyncHandler(async (req, res) => {
-    const {playlistId} = req.params
+    const {playlistId} = req.query
     
     if(!isValidObjectId(playlistId)){
         throw new ApiError(400, "PlaylistId is required");
@@ -196,9 +196,9 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 })
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
-    const {playlistId, videoId} = req.params;
+    const {playlistId, videoId} = req.query;
 
-    console.log("id's", req.params);
+    console.log("id's", req.query);
 
     if(!(isValidObjectId(playlistId) && isValidObjectId(videoId))){
         throw new ApiError(400, "PlaylistId and videoId both are required");
@@ -221,7 +221,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
 })
 
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
-    const {playlistId, videoId} = req.params
+    const {playlistId, videoId} = req.query
     // TODO: remove video from playlist
     if(!isValidObjectId(playlistId) && !isValidObjectId(videoId)){
         throw new ApiError(400, "PlaylistId and VideoId required")
@@ -242,6 +242,62 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, playlistAfterVideoRemoved, "video removed successfully"))
 })
 
+const deletePlaylist = asyncHandler(async (req, res) => {
+    const {playlistId} = req.query
+    console.log("playlistId", playlistId)
+    // TODO: delete playlist
+
+    if(!isValidObjectId(playlistId)){
+        throw new ApiError(400, "playlistId is required")
+    }
+
+    const deletedPlaylist = await Playlist.findByIdAndDelete(playlistId);
+
+    if(!deletedPlaylist){
+        throw new ApiError(400, "Unable to delete playlist due some reason please try again")
+    }
+
+    console.log("deleted playlist", deletedPlaylist);
+
+    return res.status(200).json(new ApiResponse(200, {}, "playlist deleted successfully"))
+
+})
+
+const updatePlaylist = asyncHandler(async (req, res) => {
+    const {playlistId} = req.query
+    const {name, description} = req.body
+
+    console.log("name, description",name, description)
+    //TODO: update playlist
+
+    if(!isValidObjectId(playlistId)){
+        throw new ApiError(400, "playlistId is required")
+    }
+
+    if(!name){
+        throw new ApiError(400, "name is required")
+    }
+
+    const updatedPlaylist = await Playlist.findByIdAndUpdate(playlistId, {
+        $set:{
+            name: name,
+            description: description
+        }
+    },
+    {
+        new: true
+    })
+
+    if(!updatedPlaylist){
+        throw new ApiError(400, "something went wrong while updating the playlist details, please try again")
+    }
+
+    console.log("updated playlist", updatedPlaylist);
+
+    return res.status(200).json(new ApiResponse(200, updatedPlaylist, "playlist details updated successfully"))
+
+})
+
 
 
 export {
@@ -249,5 +305,7 @@ export {
     getUserPlaylists,
     addVideoToPlaylist,
     removeVideoFromPlaylist,
-    getPlaylistById
+    getPlaylistById,
+    updatePlaylist,
+    deletePlaylist
 }
