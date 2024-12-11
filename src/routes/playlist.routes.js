@@ -12,9 +12,9 @@ router.route("/remove-video-from-playlist").post(verifyJWT, removeVideoFromPlayl
 
 router.route("/get-user-playlists").get(verifyJWT, getUserPlaylists);
 
-router.route("/get-paylist-by-id/").get(verifyJWT, getPlaylistById);
+router.route("/get-paylist-by-id").get(verifyJWT, getPlaylistById);
 
-router.route("/update-playlist-details/").post(verifyJWT, updatePlaylist);
+router.route("/update-playlist-details").post(verifyJWT, updatePlaylist);
 
 router.route("/delete-playlist").delete(verifyJWT, deletePlaylist);
 
