@@ -2,7 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Subscription } from '../models/subscription.model.js'
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import mongoose, { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId, Mongoose } from "mongoose";
 
 const toggleSubscription = asyncHandler(async (req, res) => {
     const {channelId} = req.query
@@ -57,13 +57,36 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-    const {channelId} = req.params
-})
+    const {channelId} = req.query
+    if(!isValidObjectId(channelId)){
+        throw new ApiError(400, "channelId is required")
+    }
 
+    const subsList = await Subscription.find({channel:channelId}).populate('subscriber', 'username avatar email')
+
+    if(!subsList || subsList.length === 0 ){
+        throw new ApiError(400, "No subscribers for the channel")
+    }
+
+    return res.status(200).json(new ApiResponse(200, subsList, "Subscribers list"))
+})
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
-    const { subscriberId } = req.params
+    const { subscriberId } = req.query
+
+    // if(!isValidObjectId(subscriberId)){
+    //     throw new ApiError(400, "subscriberId is required")
+    // }
+
+    const channelList = await Subscription.find({subscriber: req.user?._id}).populate('channel', 'username email avatar coverImage').select('-subscriber -__v')
+
+    if(!channelList || channelList.length === 0 ){
+        throw new ApiError(400, "No channels subscribed")
+    }
+
+    return res.status(200).json(new ApiResponse(200, channelList, "subscribed channel list"))
+
 })
 
 
