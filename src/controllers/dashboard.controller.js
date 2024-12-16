@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { Video } from "../models/video.model.js";
 
 
@@ -101,8 +101,15 @@ const getChannelStats = asyncHandler(async(req, res)=>{
 })
 
 const getChannelVideos = asyncHandler(async(req, res)=>{
+
+    const {channelId} = req.query;
+
+    if(!isValidObjectId(channelId)){
+        throw new ApiError(400, "Channel Id is required")
+    }
+
     const channelVideos = await Video.find({
-        owner: req.user?._id
+        owner: new mongoose.Types.ObjectId(channelId)
     })
 
     if(channelVideos.length === 0){
