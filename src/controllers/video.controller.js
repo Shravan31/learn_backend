@@ -8,31 +8,31 @@ import { isValidObjectId } from "mongoose";
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query ='', sortBy = "createdAt", sortType ='', userId='' } = req.query
-    //TODO: get all videos based on query, sort, pagination
+    const { page = 1, limit = 10, query = '', sortBy = 'createdAt', sortType = 1, userId = '' } = req.query;
     console.log(">>>query ", query, sortBy, sortType, userId);
 
-    var videoAggregate ;
+    let videoAggregate;
 
     try {
-        videoAggregate = await Video.aggregate([
+        // Build the aggregation pipeline
+        videoAggregate = [
             {
-                $match:{
-                    $or:[
-                        {title: {$regex: query, $options: 'i'}},
-                        {description: {$regex: query, $options: 'i'}}
+                $match: {
+                    $or: [
+                        { title: { $regex: query, $options: 'i' } },
+                        { description: { $regex: query, $options: 'i' } }
                     ]
                 }
             },
             {
                 $lookup: {
                     from: 'users',
-                    localField: "owner",
-                    foreignField: "_id",
-                    as: "owner",
-                    pipeline:[
+                    localField: 'owner',
+                    foreignField: '_id',
+                    as: 'owner',
+                    pipeline: [
                         {
-                            $project:{
+                            $project: {
                                 _id: 1,
                                 fullName: 1,
                                 username: 1,
@@ -40,43 +40,52 @@ const getAllVideos = asyncHandler(async (req, res) => {
                             }
                         }
                     ]
-                },
-                
-            },
-            {
-                $addFields:{
-                    owner:{
-                        $first: "$owner"
-                    }
                 }
             },
             {
-                $sort:{
-                    [sortBy || "createdAt"]: parseInt(sortType) || 1
+                $addFields: {
+                    owner: { $first: '$owner' }
+                }
+            },
+            {
+                $sort: {
+                    [sortBy]: parseInt(sortType)  // Sorting based on user input
                 }
             }
-        ])
+        ];
+
+        // Now use aggregatePaginate to apply pagination automatically
+        const options = {
+            page: parseInt(page),  // Current page number
+            limit: parseInt(limit),  // Items per page
+            customLabels: {
+                totalDocs: 'totalVideos',
+                docs: 'videos'
+            }
+        };
+
+        Video.aggregatePaginate(videoAggregate, options)
+            .then(result => {
+                console.log("Paginated result:", result);
+                if (result?.videos?.length === 0) {
+                    return res.status(200).json(new ApiResponse(200, [], "No videos found"));
+                }
+
+                return res.status(200).json(
+                    new ApiResponse(200, result, "Videos fetched successfully")
+                );
+            })
+            .catch(error => {
+                console.error("Error in pagination:", error);
+                throw new ApiError(500, error?.message || "Internal server error in video aggregatePaginate");
+            });
+
     } catch (error) {
         console.log("Error in aggregation");
-        throw new ApiError(500,  error.message || "Internal server error in video aggregation")
+        throw new ApiError(500, error.message || "Internal server error in video aggregation");
     }
 
-    console.log("video aggregate", videoAggregate)
 
-    const options = {
-        page,
-        limit,
-        customLabels: {
-            totalDocs: "totalVideos",
-            docs: "videos",
-        },
-        skip: (parseInt(page)-1)*parseInt(limit),
-        limit: parseInt(limit)
-    }
-
-    // TODO :: pagination
-
-    res.status(200).json(new ApiResponse(200, videoAggregate, "Videos fetched according the query successfully"))
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -261,7 +270,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 })
 
 export {
-    getAllVideos,  //not implemented yet
+    getAllVideos,
     publishAVideo,
     getVideoById,
     updateVideo,
