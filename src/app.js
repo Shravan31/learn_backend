@@ -23,6 +23,7 @@ import subscriptionRouter from './routes/subscription.routes.js'
 import tweetRouter from './routes/tweet.routes.js'
 import dashboardRouter from './routes/dashboard.routes.js'
 import healthcheckRouter from './routes/healthcheck.routes.js'
+import { ApiError } from './utils/ApiError.js';
 
 // user routes declaration
 app.use('/api/v1/user', userRouter);
@@ -42,5 +43,23 @@ app.use('/api/v1/tweet', tweetRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
 // healthcheck routes declaration
 app.use('/api/v1/healthcheck', healthcheckRouter);
+
+
+app.use((err, req, res, next) => {
+    if (err instanceof ApiError) {
+        return res.status(err.statusCode).json({
+            success: err.success,
+            message: err.message,
+            errors: err.errors,
+        });
+    }
+
+    // Log the error and send a generic response for unexpected errors
+    console.error(err);  // Log error to console
+    return res.status(500).json({
+        success: false,
+        message: 'Something went wrong on the server',
+    });
+});
 
 export {app};
